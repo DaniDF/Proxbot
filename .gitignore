@@ -1,0 +1,8 @@
+*.token
+*.whitelist
+
+*.json
+!package.json
+node_modules
+
+temp.js

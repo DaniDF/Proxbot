@@ -15,6 +15,7 @@ function check_user_whitelist(context, whitelist) {
 
     if(!whitelist["whitelist_users"].includes(context.chat.username)) {
         Logger.warn("User whitelist error: " + context.chat.username + " not in whitelist, user's request blocked.")
+        Logger.debug("USERRRRR --> " + JSON.stringify(context.chat))
         result = false
     } else {
         Logger.debug("User in whitelist: " + context.chat.username)
@@ -30,7 +31,13 @@ function update_forward_nav(context, new_nav) {
 
 function delete_prev_message(context) {
     if(context.session.prev_message !== undefined) {
-        context.deleteMessage(context.session.prev_message)
+        try {
+            context.deleteMessage(context.session.prev_message)
+        } catch (e) {
+            Logger.debug("System: trying to delete an already deleted message (" + context.session.prev_message + "), skip.")  //TODO Why is appening?
+        }
+        
+        context.session.prev_message = undefined
     }
 }
 

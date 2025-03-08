@@ -3,6 +3,7 @@ export { back, create_new, machine_tuning, delete_existing, help, generate_actio
 import { delete_prev_message, capitalise_first, sanitise_for_markdown } from './utils.js'
 import { Logger } from './logger.js'
 import { button_back, button_proceed, button_cancel, button_confirm, button_qemu, button_lxc } from './buttons.js'
+import { deploy_new_qemu, deploy_new_lxc, deploy_clone_templete } from './proxmox_tools.js'
 
 const cmds = [
     {
@@ -109,15 +110,15 @@ function delete_existing(context) {
 
 function help(context)
 {
-    let result = "*Help command list:*\n"
+    let command_list = ""
 
     for(let count = 0; count < cmds.length; count++)
     {
-        result += "\n★ /" + cmds[count]["name"]
+        command_list += "\n★ /" + cmds[count]["name"]
     }
 
     delete_prev_message(context)
-    context.reply(result).then( (msg_id) => {
+    context.reply("*Help command list:*\n" + sanitise_for_markdown(command_list), { parse_mode: "MarkdownV2" }).then( (msg_id) => {
         context.session.prev_message = msg_id.message_id
     })
 }
@@ -139,11 +140,6 @@ function confirm_new_machine(context) {
     context.session.prev_message = context.reply(message + "\n\n Do you want to *confirm*?", { parse_mode: "MarkdownV2", reply_markup: buttons }).then( (msg_id) => {
         context.session.prev_message = msg_id.message_id
     })
-}
-
-function deploy_machine(context) {
-    delete_prev_message(context)
-    context.reply("Wait few seconds, your machine is in creation! Bye!")
 }
 
 function machine_tuning(context) {
@@ -250,9 +246,37 @@ function confirm_template(context, name) {
     proceed(context)
 }
 
+///////////////////////////////////////////////////////////////////////////////
+//                       Deploy related Funtions                             //
+///////////////////////////////////////////////////////////////////////////////
+
+function deploy_machine(context) {
+    delete_prev_message(context)
+    context.reply("Wait few seconds, your machine is in creation!")
+
+    Logger.info(context.chat.username + ": Deploying new machine --> " + JSON.stringify(context.session.config))
+
+    var result = false
+    if(context.session.config.type == "qemu") {
+        result = deploy_new_qemu(context.session.config.values)
+
+    } else if(context.session.config.type == "lxc") {
+        result = deploy_new_lxc(context.session.config.values)
+        
+    } else if(context.session.config.type == "template") {
+        result = deploy_clone_templete(context.session.config.values)
+
+    } else {
+        Logger.error(context.chat.username + ": New machine type not supported --> " + JSON.stringify(context.session.config))
+    }
+
+    if(result) {
+        context.reply("Your machine \"" + context.session.machine_name + "\" has been created successfully!\nMy job here is done 🎉 See you soon. 👋")
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////////
-//                  Dynamuc action creation Funtions                         //
+//                  Dynamic action creation Funtions                         //
 ///////////////////////////////////////////////////////////////////////////////
 
 function generate_action_from_config_obj(config) {

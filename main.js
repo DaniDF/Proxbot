@@ -1,9 +1,19 @@
-if(process.argv.length !== 6) {
-    console.error("Error: not enough parameter\nUsage: node " + process.argv[1] + " <qm executor file> <token_file> <whitelist_file> <default_config>\n")
-    console.error("<qm executor file>: ")
-    console.error("<token_file>: A plain text file containing the Telegram Bot authentication token (see https://telegram.me/BotFather).")
-    console.error("<whitelist_file>: A JSON file containing an object with a property \"whitelist\" that is an array of strings representing all the allowed Telegram users for this bot.")
-    console.error("<default_config>: ")
+import { Telegraf, session } from 'telegraf'
+import { message } from 'telegraf/filters'
+import * as fs from 'fs'
+import { Logger } from './logger.js'
+import { cmds, actions, generate_action_from_config_obj, generate_action_from_template_obj } from './functions.js'
+import { log_user_message, log_user_action, check_user_whitelist, update_forward_nav } from './utils.js'
+
+
+
+if(process.argv.length !== 7) {
+    Logger.fatal("Error: not enough parameter\nUsage: node " + process.argv[1] + " <qm executor file> <token_file> <whitelist_file> <default_config> <default_template>")
+    Logger.fatal("<qm executor file>: ")
+    Logger.fatal("<token_file>: A plain text file containing the Telegram Bot authentication token (see https://telegram.me/BotFather).")
+    Logger.fatal("<whitelist_file>: A JSON file containing an object with a property \"whitelist\" that is an array of strings representing all the allowed Telegram users for this bot.")
+    Logger.fatal("<default_config>: ")
+    Logger.fatal("<default_template>: ")
     process.exit(-1)
 }
 
@@ -11,13 +21,7 @@ const QM_FILE = process.argv[2]
 const TOKEN_FILE = process.argv[3]
 const WHITELIST_FILE = process.argv[4]
 const DEFAULT_CONFIG_FILE = process.argv[5]
-
-import { Telegraf, session } from 'telegraf'
-import { message } from 'telegraf/filters'
-import * as fs from 'fs'
-import { Logger } from './logger.js'
-import { cmds, actions, generate_action_from_config } from './functions.js'
-import { log_user_message, log_user_action, check_user_whitelist, update_forward_nav } from './utils.js'
+const DEFAULT_TEMPLATE_FILE = process.argv[6]
 
 main()
 
@@ -26,7 +30,7 @@ function main() {
     try {
         token = fs.readFileSync(TOKEN_FILE).toString()
     } catch (e) {
-        Logger.fatal('Error: can not read token file\n' + e)
+        Logger.fatal('Error: can not read TOKEN_FILE' + TOKEN_FILE + '\n' + e)
         return
     }
 
@@ -34,7 +38,7 @@ function main() {
     try {
         whitelist = JSON.parse(fs.readFileSync(WHITELIST_FILE))
     } catch (e) {
-        Logger.fatal('Error: whitelist file\n' + e)
+        Logger.fatal('Error: WHITELIST_FILE' + WHITELIST_FILE + '\n' + e)
         return
     }
 
@@ -42,17 +46,27 @@ function main() {
     try {
         defaultconfig = JSON.parse(fs.readFileSync(DEFAULT_CONFIG_FILE))
     } catch (e) {
-        Logger.fatal('Error: default_config file\n' + e)
+        Logger.fatal('Error: DEFAULT_CONFIG_FILE' + DEFAULT_CONFIG_FILE + '\n' + e)
         return
     }
-    generate_action_from_config(defaultconfig)
+    generate_action_from_config_obj(defaultconfig)
+
+    let defaultTemplates
+    try {
+        defaultTemplates = JSON.parse(fs.readFileSync(DEFAULT_TEMPLATE_FILE))
+    } catch (e) {
+        Logger.fatal('Error: DEFAULT_TEMPLATE_FILE' + DEFAULT_TEMPLATE_FILE + '\n' + e)
+        return
+    }
+    generate_action_from_template_obj(defaultTemplates)
 
     const bot = new Telegraf(token.toString())
     bot.use(session({
         defaultSession: () => ({
             default_config: defaultconfig,
+            templates: defaultTemplates,
             nav: [{ fn: ()=>{} }],
-            input_handler: (string) => {}
+            input_handler: () => {}
         })
     }))
 

@@ -25,7 +25,7 @@ function check_user_whitelist(context, whitelist) {
 
 function update_forward_nav(context, new_nav) {
     context.session.nav.push(new_nav)
-    Logger.debug(context.chat.username + ": Nav-> precedent: " + context.session.nav[context.session.nav.length-2].fn.name + " current: " + context.session.nav[context.session.nav.length-1].fn.name)
+    Logger.debug(context.chat.username + ": Nav-> precedent: " + context.session.nav[context.session.nav.length-2].fn.name + " | current: " + context.session.nav[context.session.nav.length-1].fn.name)
 }
 
 function delete_prev_message(context) {

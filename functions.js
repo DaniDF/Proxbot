@@ -1,4 +1,4 @@
-export { back, create_new, machine_tuning, delete_existing, help, generate_action_from_config, cmds, actions }
+export { back, create_new, machine_tuning, delete_existing, help, generate_action_from_config_obj, generate_action_from_template_obj, cmds, actions }
 
 import { delete_prev_message, capitalise_first, sanitise_for_markdown } from './utils.js'
 import { Logger } from './logger.js'
@@ -8,6 +8,10 @@ const cmds = [
     {
         name: "create_new",
         func: create_new
+    },
+    {
+        name: "clone_from_template",
+        func: clone_from_template
     },
     {
         name: "delete",
@@ -46,6 +50,10 @@ var actions = [
     }
 ]
 
+///////////////////////////////////////////////////////////////////////////////
+//                          Button Handlers                                  //
+///////////////////////////////////////////////////////////////////////////////
+
 function back(context) {
     context.session.nav.pop()
     context.session.nav[context.session.nav.length-1].fn(context)
@@ -58,17 +66,67 @@ function proceed(context) {
     context.session.input_handler = (string) => {
         context.session.input_handler = () => {}
         context.session.machine_name = string
-        confirm_machine(context)
+        confirm_new_machine(context)
     }
 
     delete_prev_message(context)
     context.reply("Select machine name:", { reply_markup: buttons }).then( (msg_id) => {
         context.session.prev_message = msg_id.message_id
-    }
-)
+    })
 }
 
-function confirm_machine(context) {
+///////////////////////////////////////////////////////////////////////////////
+//                         Commands Funtions                                 //
+///////////////////////////////////////////////////////////////////////////////
+
+function create_new(context) {
+    let buttons = { inline_keyboard: [ [ button_qemu, button_lxc ] ] }
+    delete_prev_message(context)
+    context.reply('What do you want to create?', { reply_markup: buttons }).then( (msg_id) => {
+        context.session.prev_message = msg_id.message_id
+    })
+}
+
+function clone_from_template(context) {
+    let buttons = { inline_keyboard: [] }
+
+    context.session.templates.forEach(tmpl => {
+        buttons.inline_keyboard.push([ { text: tmpl, callback_data: tmpl } ])
+    })
+
+    delete_prev_message(context)
+    context.reply('Which template do you want to clone?', { reply_markup: buttons }).then( (msg_id) => {
+        context.session.prev_message = msg_id.message_id
+    })
+}
+
+function delete_existing(context) {
+    delete_prev_message(context)
+    context.reply("Not active right now\\! Sorry 😭", { parse_mode: "MarkdownV2" }).then( (msg_id) => {
+        context.session.prev_message = msg_id.message_id
+    })
+}
+
+function help(context)
+{
+    let result = "*Help command list:*\n"
+
+    for(let count = 0; count < cmds.length; count++)
+    {
+        result += "\n★ /" + cmds[count]["name"]
+    }
+
+    delete_prev_message(context)
+    context.reply(result).then( (msg_id) => {
+        context.session.prev_message = msg_id.message_id
+    })
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//                    create_new related Funtions                            //
+///////////////////////////////////////////////////////////////////////////////
+
+function confirm_new_machine(context) {
     let buttons = { inline_keyboard: [ [ button_back, button_cancel, button_confirm ] ] }
 
     var message = "*This machine is going to be deployed:*\nName: _" + context.session.machine_name + "_\n"
@@ -80,22 +138,12 @@ function confirm_machine(context) {
     delete_prev_message(context)
     context.session.prev_message = context.reply(message + "\n\n Do you want to *confirm*?", { parse_mode: "MarkdownV2", reply_markup: buttons }).then( (msg_id) => {
         context.session.prev_message = msg_id.message_id
-    }
-)
+    })
 }
 
 function deploy_machine(context) {
     delete_prev_message(context)
     context.reply("Wait few seconds, your machine is in creation! Bye!")
-}
-
-function create_new(context) {
-    let buttons = { inline_keyboard: [ [ button_qemu, button_lxc ] ] }
-    delete_prev_message(context)
-    context.reply('What do you want to create?', { reply_markup: buttons }).then( (msg_id) => {
-        context.session.prev_message = msg_id.message_id
-    }
-)
 }
 
 function machine_tuning(context) {
@@ -136,8 +184,7 @@ function machine_tuning(context) {
     delete_prev_message(context)
     context.reply(message, { parse_mode: "MarkdownV2", reply_markup: buttons }).then( (msg_id) => {
         context.session.prev_message = msg_id.message_id
-    }
-)
+    })
 }
 
 function machine_tuning_setting_int(context, name) {
@@ -153,16 +200,14 @@ function machine_tuning_setting_int(context, name) {
             delete_prev_message(context)
             context.reply("*Wrong value*", { parse_mode: "MarkdownV2" } ).then( (msg_id) => {
                 context.session.prev_message = msg_id.message_id
-            }
-        )
+            })
             machine_tuning_setting_int(context, name)
         }
     }
     delete_prev_message(context)
     context.reply("Insert the new value for " + name + " (integer):", { reply_markup: buttons }).then( (msg_id) => {
         context.session.prev_message = msg_id.message_id
-    }
-)
+    })
 }
 
 function machine_tuning_setting_boolean(context, name) {
@@ -175,8 +220,7 @@ function machine_tuning_setting_boolean(context, name) {
     delete_prev_message(context)
     context.reply("Insert the new value for " + name + " (boolean):").then( (msg_id) => {
         context.session.prev_message = msg_id.message_id
-    }
-)
+    })
 }
 
 function machine_tuning_setting_string(context, name) {
@@ -188,35 +232,30 @@ function machine_tuning_setting_string(context, name) {
     delete_prev_message(context)
     context.reply("Insert the new value for " + name + " (string):").then( (msg_id) => {
         context.session.prev_message = msg_id.message_id
-    }
-)
+    })
 }
 
-function delete_existing(context) {
-    delete_prev_message(context)
-    context.reply("Not active right now\\! Sorry 😭", { parse_mode: "MarkdownV2" }).then( (msg_id) => {
-        context.session.prev_message = msg_id.message_id
-    }
-)
-}
+///////////////////////////////////////////////////////////////////////////////
+//                clone_from_template related Funtions                       //
+///////////////////////////////////////////////////////////////////////////////
 
-function help(context)
-{
-    let result = "Help command list:"
-
-    for(let count = 0; count < cmds.length; count++)
-    {
-        result += "\n/" + cmds[count]["name"]
-    }
-
-    delete_prev_message(context)
-    context.reply(result).then( (msg_id) => {
-            context.session.prev_message = msg_id.message_id
+function confirm_template(context, name) {
+    context.session.config = {
+        type: "template",
+        values: {
+            template: name
         }
-    )
+    }
+
+    proceed(context)
 }
 
-function generate_action_from_config(config) {
+
+///////////////////////////////////////////////////////////////////////////////
+//                  Dynamuc action creation Funtions                         //
+///////////////////////////////////////////////////////////////////////////////
+
+function generate_action_from_config_obj(config) {
     Object.entries(config).forEach(config_type => {
         Object.entries(config_type[1]).forEach(settings => {
             let fn
@@ -234,5 +273,14 @@ function generate_action_from_config(config) {
             })
         })
         
+    })
+}
+
+function generate_action_from_template_obj(template) {
+    template.forEach(tmpl => {
+        actions.push({
+            name: tmpl,
+            func: confirm_template
+        })
     })
 }

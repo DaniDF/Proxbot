@@ -1,6 +1,6 @@
 export { back, create_new, machine_tuning, delete_existing, help, generate_action_from_config_obj, generate_action_from_template_obj, cmds, actions }
 
-import { delete_prev_message, capitalise_first, sanitise_for_markdown } from './utils.js'
+import { delete_prev_message, capitalise_first, sanitise_for_markdown, sanitise_input } from './utils.js'
 import { Logger } from './logger.js'
 import { button_back, button_proceed, button_cancel, button_confirm, button_qemu, button_lxc } from './buttons.js'
 import { deploy_new_qemu, deploy_new_lxc, deploy_clone_templete } from './proxmox_tools.js'
@@ -66,7 +66,7 @@ function proceed(context) {
 
     context.session.input_handler = (string) => {
         context.session.input_handler = () => {}
-        context.session.machine_name = string
+        context.session.machine_name = sanitise_input(string)
         confirm_new_machine(context)
     }
 
@@ -130,10 +130,10 @@ function help(context)
 function confirm_new_machine(context) {
     let buttons = { inline_keyboard: [ [ button_back, button_cancel, button_confirm ] ] }
 
-    var message = "*This machine is going to be deployed:*\nName: _" + context.session.machine_name + "_\n"
+    var message = "*This machine is going to be deployed:*\nName: _" + sanitise_for_markdown(context.session.machine_name) + "_\n"
     Object.entries(context.session.config.values).forEach((conf, _) => {
         let pretty_key = capitalise_first(conf[0].replaceAll("_", " "))
-        message += "\n💠 " + pretty_key + ": " + sanitise_for_markdown(conf[1].toString())
+        message += "\n💠 " + sanitise_for_markdown(pretty_key) + ": " + sanitise_for_markdown(conf[1].toString())
     })
 
     delete_prev_message(context)
@@ -160,7 +160,7 @@ function machine_tuning(context) {
     var count = 0
     Object.entries(context.session.config.values).forEach((conf, _) => {
         let pretty_key = capitalise_first(conf[0].replaceAll("_", " "))
-        message += "\n💠 " + pretty_key + ": " + sanitise_for_markdown(conf[1].toString())
+        message += "\n💠 " + sanitise_for_markdown(pretty_key) + ": " + sanitise_for_markdown(conf[1].toString())
 
         if(count % 3 == 0) {
             buttons.inline_keyboard.push([])
@@ -221,7 +221,7 @@ function machine_tuning_setting_boolean(context, name) {
 
 function machine_tuning_setting_string(context, name) {
     context.session.input_handler = (string) => {
-        context.session.config.values[name] = string
+        context.session.config.values[name] = sanitise_input(string)
         context.session.input_handler = () => {}
         back(context)
     }

@@ -30,7 +30,7 @@ function main() {
     try {
         token = fs.readFileSync(TOKEN_FILE).toString()
     } catch (e) {
-        Logger.fatal('Error: can not read TOKEN_FILE' + TOKEN_FILE + '\n' + e)
+        Logger.fatal('Error: can not read TOKEN_FILE ' + TOKEN_FILE + '\n' + e)
         return
     }
 
@@ -38,7 +38,7 @@ function main() {
     try {
         whitelist = JSON.parse(fs.readFileSync(WHITELIST_FILE))
     } catch (e) {
-        Logger.fatal('Error: WHITELIST_FILE' + WHITELIST_FILE + '\n' + e)
+        Logger.fatal('Error: WHITELIST_FILE ' + WHITELIST_FILE + '\n' + e)
         return
     }
 
@@ -46,7 +46,7 @@ function main() {
     try {
         defaultconfig = JSON.parse(fs.readFileSync(DEFAULT_CONFIG_FILE))
     } catch (e) {
-        Logger.fatal('Error: DEFAULT_CONFIG_FILE' + DEFAULT_CONFIG_FILE + '\n' + e)
+        Logger.fatal('Error: DEFAULT_CONFIG_FILE ' + DEFAULT_CONFIG_FILE + '\n' + e)
         return
     }
     generate_action_from_config_obj(defaultconfig)
@@ -55,7 +55,7 @@ function main() {
     try {
         defaultTemplates = JSON.parse(fs.readFileSync(DEFAULT_TEMPLATE_FILE))
     } catch (e) {
-        Logger.fatal('Error: DEFAULT_TEMPLATE_FILE' + DEFAULT_TEMPLATE_FILE + '\n' + e)
+        Logger.fatal('Error: DEFAULT_TEMPLATE_FILE ' + DEFAULT_TEMPLATE_FILE + '\n' + e)
         return
     }
     generate_action_from_template_obj(defaultTemplates)

@@ -1,4 +1,4 @@
-export { log_user_message, log_user_action, check_user_whitelist, update_forward_nav, delete_prev_message, capitalise_first, sanitise_for_markdown }
+export { log_user_message, log_user_action, check_user_whitelist, update_forward_nav, delete_prev_message, capitalise_first, sanitise_for_markdown, sanitise_input }
 
 import { Logger } from './logger.js'
 
@@ -15,7 +15,6 @@ function check_user_whitelist(context, whitelist) {
 
     if(!whitelist["whitelist_users"].includes(context.chat.username)) {
         Logger.warn("User whitelist error: " + context.chat.username + " not in whitelist, user's request blocked.")
-        Logger.debug("USERRRRR --> " + JSON.stringify(context.chat))
         result = false
     } else {
         Logger.debug("User in whitelist: " + context.chat.username)
@@ -26,7 +25,7 @@ function check_user_whitelist(context, whitelist) {
 
 function update_forward_nav(context, new_nav) {
     context.session.nav.push(new_nav)
-    Logger.debug(context.chat.username + ": Nav-> precedent: " + context.session.nav[context.session.nav.length-2].fn.name + " | current: " + context.session.nav[context.session.nav.length-1].fn.name)
+    Logger.debug(context.chat.username + ": Nav --> precedent: " + context.session.nav[context.session.nav.length-2].fn.name + " | current: " + context.session.nav[context.session.nav.length-1].fn.name)
 }
 
 function delete_prev_message(context) {
@@ -46,10 +45,25 @@ function capitalise_first(string) {
 }
 
 function sanitise_for_markdown(string) {
-    return string
-        .replaceAll("_", "\\_")
-        .replaceAll("*", "\\*")
-        .replaceAll("[", "\\[")
-        .replaceAll("`", "\\`")
-        .replaceAll(".", "\\.")
+    const SPECIAL_CHARS = [
+        '\\', '_', '*', '[', ']', '(', ')', '~', '`', '>', '<', '&', '#', '+', '-', '=', '|', '{', '}', '.', '!'
+    ]
+
+    var result = string
+    SPECIAL_CHARS.forEach(char => {
+        result = result.replaceAll(char, "\\" + char)
+    })
+
+    return result
+}
+
+function sanitise_input(string) {
+    var result = ""
+    for(var count = 0; count < string.length; count++) {
+        if(string.charCodeAt(count) >= 32) {
+            result += string.charAt(count)
+        }
+    }
+
+    return result
 }

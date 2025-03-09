@@ -7,55 +7,55 @@ import { get_username, log_user_message, log_user_action, check_user_whitelist, 
 
 
 
-if(process.argv.length !== 7) {
-    Logger.fatal("Error: not enough parameter\nUsage: node " + process.argv[1] + " <qm executor file> <token_file> <whitelist_file> <default_config> <default_template>")
-    Logger.fatal("<qm executor file>: ")
-    Logger.fatal("<token_file>: A plain text file containing the Telegram Bot authentication token (see https://telegram.me/BotFather).")
-    Logger.fatal("<whitelist_file>: A JSON file containing an object with a property \"whitelist\" that is an array of strings representing all the allowed Telegram users for this bot.")
-    Logger.fatal("<default_config>: ")
-    Logger.fatal("<default_template>: ")
+if(process.argv.length !== 3) {
+    Logger.fatal("Error: not enough parameter\nUsage: node " + process.argv[1] + " <config_file>")
+    Logger.fatal("<config_file>: ")
     process.exit(-1)
 }
 
-const QM_FILE = process.argv[2]
-const TOKEN_FILE = process.argv[3]
-const WHITELIST_FILE = process.argv[4]
-const DEFAULT_CONFIG_FILE = process.argv[5]
-const DEFAULT_TEMPLATE_FILE = process.argv[6]
+const CONFIGS_FILE = process.argv[2]
 
 main()
 
 function main() {
+    let configs
+    try {
+        configs = JSON.parse(fs.readFileSync(CONFIGS_FILE).toString())
+    } catch (e) {
+        Logger.fatal('Error: can not read CONFIGS_FILE ' + CONFIGS_FILE + '\n' + e)
+        return
+    }
+
     let token
     try {
-        token = fs.readFileSync(TOKEN_FILE).toString()
+        token = fs.readFileSync(configs.token_file).toString()
     } catch (e) {
-        Logger.fatal('Error: can not read TOKEN_FILE ' + TOKEN_FILE + '\n' + e)
+        Logger.fatal('Error: can not read TOKEN_FILE ' + configs.token_file + '\n' + e)
         return
     }
 
     let whitelist
     try {
-        whitelist = JSON.parse(fs.readFileSync(WHITELIST_FILE))
+        whitelist = JSON.parse(fs.readFileSync(configs.whitelist_file))
     } catch (e) {
-        Logger.fatal('Error: WHITELIST_FILE ' + WHITELIST_FILE + '\n' + e)
+        Logger.fatal('Error: WHITELIST_FILE ' + configs.whitelist_file + '\n' + e)
         return
     }
 
     let defaultconfig
     try {
-        defaultconfig = JSON.parse(fs.readFileSync(DEFAULT_CONFIG_FILE))
+        defaultconfig = JSON.parse(fs.readFileSync(configs.default_config))
     } catch (e) {
-        Logger.fatal('Error: DEFAULT_CONFIG_FILE ' + DEFAULT_CONFIG_FILE + '\n' + e)
+        Logger.fatal('Error: DEFAULT_CONFIG_FILE ' + configs.default_config + '\n' + e)
         return
     }
     generate_action_from_config_obj(defaultconfig)
 
     let defaultTemplates
     try {
-        defaultTemplates = JSON.parse(fs.readFileSync(DEFAULT_TEMPLATE_FILE))
+        defaultTemplates = JSON.parse(fs.readFileSync(configs.default_template))
     } catch (e) {
-        Logger.fatal('Error: DEFAULT_TEMPLATE_FILE ' + DEFAULT_TEMPLATE_FILE + '\n' + e)
+        Logger.fatal('Error: DEFAULT_TEMPLATE_FILE ' + configs.default_template + '\n' + e)
         return
     }
     generate_action_from_template_obj(defaultTemplates)

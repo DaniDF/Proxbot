@@ -58,7 +58,7 @@ For working properly Proxbot needs a JSON file that describes the paths for all 
 
 An whitelisted user can use the bot in its private chat and only in whitelisted groups. **Not** listed user or groups can not interact white the bot.
 
-```
+```json
 {
     "whitelist_users":["User1", "User1", "User2", "User3"],
     "whitelist_groups":["Group0", "Group1", "Group2", "Group3"]

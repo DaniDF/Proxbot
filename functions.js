@@ -1,6 +1,6 @@
 export { back, create_new, machine_tuning, delete_existing, help, generate_action_from_config_obj, generate_action_from_template_obj, cmds, actions }
 
-import { delete_prev_message, capitalise_first, sanitise_for_markdown, sanitise_input } from './utils.js'
+import { get_sender, delete_prev_message, send_updateble_message, send_message, capitalise_first, sanitise_for_markdown, sanitise_input } from './utils.js'
 import { Logger } from './logger.js'
 import { button_back, button_proceed, button_cancel, button_confirm, button_qemu, button_lxc } from './buttons.js'
 import { deploy_new_qemu, deploy_new_lxc, deploy_clone_templete } from './proxmox_tools.js'
@@ -56,9 +56,17 @@ var actions = [
 ///////////////////////////////////////////////////////////////////////////////
 
 function back(context) {
-    context.session.nav.pop()
-    context.session.nav[context.session.nav.length-1].fn(context)
-    Logger.debug(context.chat.username + ": Nav-> precedent: " + context.session.nav[context.session.nav.length-2].fn.name + " current: " + context.session.nav[context.session.nav.length-1].fn.name)
+    if(context.session.nav.length > 1) {
+        context.session.nav.pop()
+        context.session.nav[context.session.nav.length-1].fn(context)
+        Logger.debug(
+            get_sender(context) + ": Nav -->" + ((context.session.nav.length > 1)? " precedent: " +
+            context.session.nav[context.session.nav.length-2].fn.name : "") + " current: " +
+            context.session.nav[context.session.nav.length-1].fn.name
+        )
+    } else {
+        Logger.debug(get_sender(context) + ": Nav --> pressed back but there is not precedent function")
+    }
 }
 
 function proceed(context) {
@@ -67,13 +75,11 @@ function proceed(context) {
     context.session.input_handler = (string) => {
         context.session.input_handler = () => {}
         context.session.machine_name = sanitise_input(string)
+        delete_prev_message(context)
         confirm_new_machine(context)
     }
 
-    delete_prev_message(context)
-    context.reply("Select machine name:", { reply_markup: buttons }).then( (msg_id) => {
-        context.session.prev_message = msg_id.message_id
-    })
+    send_updateble_message(context, "Select machine name:", { reply_markup: buttons })
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -82,10 +88,7 @@ function proceed(context) {
 
 function create_new(context) {
     let buttons = { inline_keyboard: [ [ button_qemu, button_lxc ] ] }
-    delete_prev_message(context)
-    context.reply('What do you want to create?', { reply_markup: buttons }).then( (msg_id) => {
-        context.session.prev_message = msg_id.message_id
-    })
+    send_updateble_message(context, "What do you want to create?", { reply_markup: buttons })
 }
 
 function clone_from_template(context) {
@@ -95,17 +98,11 @@ function clone_from_template(context) {
         buttons.inline_keyboard.push([ { text: tmpl, callback_data: tmpl } ])
     })
 
-    delete_prev_message(context)
-    context.reply('Which template do you want to clone?', { reply_markup: buttons }).then( (msg_id) => {
-        context.session.prev_message = msg_id.message_id
-    })
+    send_updateble_message(context, "Which template do you want to clone?", { reply_markup: buttons })
 }
 
 function delete_existing(context) {
-    delete_prev_message(context)
-    context.reply("Not active right now\\! Sorry 😭", { parse_mode: "MarkdownV2" }).then( (msg_id) => {
-        context.session.prev_message = msg_id.message_id
-    })
+    send_updateble_message(context, "Not active right now\\! Sorry 😭", { parse_mode: "MarkdownV2" })
 }
 
 function help(context)
@@ -117,10 +114,7 @@ function help(context)
         command_list += "\n★ /" + cmds[count]["name"]
     }
 
-    delete_prev_message(context)
-    context.reply("*Help command list:*\n" + sanitise_for_markdown(command_list), { parse_mode: "MarkdownV2" }).then( (msg_id) => {
-        context.session.prev_message = msg_id.message_id
-    })
+    send_message(context, "*Help command list:*\n" + sanitise_for_markdown(command_list), { parse_mode: "MarkdownV2" })
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -136,10 +130,7 @@ function confirm_new_machine(context) {
         message += "\n💠 " + sanitise_for_markdown(pretty_key) + ": " + sanitise_for_markdown(conf[1].toString())
     })
 
-    delete_prev_message(context)
-    context.session.prev_message = context.reply(message + "\n\n Do you want to *confirm*?", { parse_mode: "MarkdownV2", reply_markup: buttons }).then( (msg_id) => {
-        context.session.prev_message = msg_id.message_id
-    })
+    send_updateble_message(context, message + "\n\n Do you want to *confirm*?", { parse_mode: "MarkdownV2", reply_markup: buttons })
 }
 
 function machine_tuning(context) {
@@ -177,10 +168,7 @@ function machine_tuning(context) {
 
     message += "\n\nDo you want to change some settings? If not press \"Proceed\""
 
-    delete_prev_message(context)
-    context.reply(message, { parse_mode: "MarkdownV2", reply_markup: buttons }).then( (msg_id) => {
-        context.session.prev_message = msg_id.message_id
-    })
+    send_updateble_message(context, message, { parse_mode: "MarkdownV2", reply_markup: buttons })
 }
 
 function machine_tuning_setting_int(context, name) {
@@ -188,22 +176,19 @@ function machine_tuning_setting_int(context, name) {
     context.session.input_handler = (string) => {
         let new_value = parseInt(string)
         if(!isNaN(new_value)) {
-            Logger.debug(context.chat.username + ": Set " + name + " to " + new_value)
+            Logger.debug(get_sender(context) + ": Set " + name + " to " + new_value)
             context.session.config.values[name] = new_value
             context.session.input_handler = () => {}
+            delete_prev_message(context)
             back(context)
         } else {
             delete_prev_message(context)
-            context.reply("*Wrong value*", { parse_mode: "MarkdownV2" } ).then( (msg_id) => {
-                context.session.prev_message = msg_id.message_id
-            })
+            send_updateble_message(context, "*Wrong value*", { parse_mode: "MarkdownV2" })
             machine_tuning_setting_int(context, name)
         }
     }
-    delete_prev_message(context)
-    context.reply("Insert the new value for " + name + " (integer):", { reply_markup: buttons }).then( (msg_id) => {
-        context.session.prev_message = msg_id.message_id
-    })
+
+    send_updateble_message(context, "Insert the new value for " + name + " (integer):", { reply_markup: buttons })
 }
 
 function machine_tuning_setting_boolean(context, name) {
@@ -211,24 +196,22 @@ function machine_tuning_setting_boolean(context, name) {
         let new_value = (string.toLowerCase() === "true")
         context.session.config.values[name] = new_value
         context.session.input_handler = () => {}
+        delete_prev_message(context)
         back(context)
     }
-    delete_prev_message(context)
-    context.reply("Insert the new value for " + name + " (boolean):").then( (msg_id) => {
-        context.session.prev_message = msg_id.message_id
-    })
+    
+    send_updateble_message(context, "Insert the new value for " + name + " (boolean):")
 }
 
 function machine_tuning_setting_string(context, name) {
     context.session.input_handler = (string) => {
         context.session.config.values[name] = sanitise_input(string)
         context.session.input_handler = () => {}
+        delete_prev_message(context)
         back(context)
     }
-    delete_prev_message(context)
-    context.reply("Insert the new value for " + name + " (string):").then( (msg_id) => {
-        context.session.prev_message = msg_id.message_id
-    })
+
+    send_updateble_message(context, "Insert the new value for " + name + " (string):")
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -252,9 +235,9 @@ function confirm_template(context, name) {
 
 function deploy_machine(context) {
     delete_prev_message(context)
-    context.reply("Wait few seconds, your machine is in creation!")
+    send_message(context, "Wait few seconds, your machine is in creation!")
 
-    Logger.info(context.chat.username + ": Deploying new machine --> " + JSON.stringify(context.session.config))
+    Logger.info(get_sender(context) + ": Deploying new machine --> " + JSON.stringify(context.session.config))
 
     var result = false
     if(context.session.config.type == "qemu") {
@@ -267,11 +250,11 @@ function deploy_machine(context) {
         result = deploy_clone_templete(context.session.config.values)
 
     } else {
-        Logger.error(context.chat.username + ": New machine type not supported --> " + JSON.stringify(context.session.config))
+        Logger.error(get_sender(context) + ": New machine type not supported --> " + JSON.stringify(context.session.config))
     }
 
     if(result) {
-        context.reply("Your machine \"" + context.session.machine_name + "\" has been created successfully!\nMy job here is done 🎉 See you soon. 👋")
+        send_message(context, "Your machine \"" + context.session.machine_name + "\" has been created successfully!\nMy job here is done 🎉 See you soon. 👋")
     }
 }
 

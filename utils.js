@@ -1,23 +1,64 @@
-export { log_user_message, log_user_action, check_user_whitelist, update_forward_nav, delete_prev_message, capitalise_first, sanitise_for_markdown, sanitise_input }
+export {
+    get_username, get_sender, get_bot_name, log_user_message, log_user_action, check_user_whitelist, update_forward_nav,
+    delete_prev_message, send_updateble_message, send_message, capitalise_first, sanitise_for_markdown, sanitise_input
+}
 
 import { Logger } from './logger.js'
 
+function get_username(context) {
+    var result
+    if(context.message !== undefined) {
+        result = context.message.from.username
+    } else {
+        result = context.callbackQuery.from.username
+    }
+
+    return result
+}
+
+function get_groupname(context) {
+    var result = undefined
+
+    if(context.chat.type !== "private") {
+        result = context.chat.title
+    }
+
+    return result
+}
+
+function get_sender(context) {
+    let groupname = get_groupname(context)
+    return get_username(context) + ((groupname !== undefined)? "@" + groupname : "")
+}
+
+function get_bot_name(context) {
+    return context.botInfo.username
+}
+
 function log_user_message(context) {
-    Logger.info(context.chat.username + ": " + context.update.message.text + " (" + context.message.message_id + ")")
+    Logger.info(get_sender(context) + ": " + context.update.message.text + " (" + context.message.message_id + ")")
 }
 
 function log_user_action(context) {
-    Logger.info(context.chat.username + ": " + context.callbackQuery.data)
+    Logger.info(get_sender(context) + ": " + context.callbackQuery.data)
 }
 
 function check_user_whitelist(context, whitelist) {
-    var result = true
+    let username = get_username(context)
+    let groupname = get_groupname(context)
 
-    if(!whitelist["whitelist_users"].includes(context.chat.username)) {
-        Logger.warn("User whitelist error: " + context.chat.username + " not in whitelist, user's request blocked.")
+    var result
+    if(whitelist.whitelist_users.includes(username) && (groupname === undefined || whitelist.whitelist_groups.includes(groupname))) {
+        Logger.debug("User in whitelist: " + get_sender(context))
+        result = true
+
+    } else if(!whitelist.whitelist_users.includes(username)) {
+        Logger.warn("User whitelist error: " + get_sender(context) + " not in whitelist, user's request blocked.")
         result = false
+
     } else {
-        Logger.debug("User in whitelist: " + context.chat.username)
+        Logger.warn("Group whitelist error: " + get_sender(context) + " not in whitelist, user's request blocked.")
+        result = false
     }
 
     return result
@@ -25,7 +66,11 @@ function check_user_whitelist(context, whitelist) {
 
 function update_forward_nav(context, new_nav) {
     context.session.nav.push(new_nav)
-    Logger.debug(context.chat.username + ": Nav --> precedent: " + context.session.nav[context.session.nav.length-2].fn.name + " | current: " + context.session.nav[context.session.nav.length-1].fn.name)
+    Logger.debug(
+        get_sender(context) + ": Nav --> precedent: " +
+        context.session.nav[context.session.nav.length-2].fn.name + " | current: " +
+        context.session.nav[context.session.nav.length-1].fn.name
+    )
 }
 
 function delete_prev_message(context) {
@@ -38,6 +83,24 @@ function delete_prev_message(context) {
         
         context.session.prev_message = undefined
     }
+}
+
+function send_updateble_message(context, text, args = {}) {
+    if(context.session.prev_message === undefined || context.session.prev_chat === undefined) {
+        context.reply(text, args).then( (msg_id) => {
+            context.session.prev_message = msg_id.message_id
+            context.session.prev_chat = context.chat.id
+        })
+    
+    } else {
+        args.chat_id = context.session.prev_chat
+        args.message_id = context.session.prev_message
+        context.editMessageText(text, args)
+    }
+}
+
+function send_message(context, text, args) {
+    context.reply(text, args)
 }
 
 function capitalise_first(string) {

@@ -3,7 +3,7 @@ import { message } from 'telegraf/filters'
 import * as fs from 'fs'
 import { Logger } from './logger.js'
 import { cmds, actions, generate_action_from_config_obj, generate_action_from_template_obj } from './functions.js'
-import { log_user_message, log_user_action, check_user_whitelist, update_forward_nav } from './utils.js'
+import { get_username, log_user_message, log_user_action, check_user_whitelist, update_forward_nav, delete_prev_message, get_bot_name } from './utils.js'
 
 
 
@@ -72,7 +72,7 @@ function main() {
 
     bot.start(context => {
         log_user_message(context)
-        context.reply('Welcome ' + context.chat.username + '. For /help')
+        context.reply('Welcome ' + get_username(context) + '. For /help')
     })
 
     bot.on(message("text"), context => {
@@ -91,18 +91,9 @@ function main() {
     Logger.info("Bot started")
 }
 
-function define_commands(bot, filter) {
-    cmds.forEach(cmd => {
-        bot.command(cmd.name, context => {
-            log_user_message(context)
-            command_action_handler(context, cmd.name, cmd.func, filter)
-        })
-    })
-}
-
 function execute_commands(context, command, filter) {
     cmds.forEach(cmd => {
-        if(cmd.name == command.slice(1)){
+        if(cmd.name == command.slice(1) || (cmd.name + "@" + get_bot_name(context)) == command.slice(1)){
             log_user_message(context)
             command_action_handler(context, cmd.name, cmd.func, filter)
         }
@@ -124,8 +115,7 @@ function command_action_handler(context, name, func, filter) {
     }
 
     if(filter(context)) {
-        //Logger.debug("Serving: " + context.message.message_id + " -> " + name)
+        delete_prev_message(context)
         func(context, name)
-        //Logger.debug("Service finished: " + context.message.message_id)
     }
 }

@@ -3,7 +3,7 @@ services:
     build: .
     container_name: "proxbot"
     volumes:
-      - ../temp:/Proxbot-data
+      - ./data:/Proxbot-data
     deploy:
       restart_policy:
         condition: "unless-stopped"

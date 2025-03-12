@@ -4,6 +4,7 @@ import * as fs from 'fs'
 import { Logger } from './logger.js'
 import { cmds, actions, generate_action_from_config_obj, generate_action_from_template_obj } from './functions.js'
 import { get_username, log_user_message, log_user_action, check_user_whitelist, update_forward_nav, delete_prev_message, get_bot_name } from './utils.js'
+import { set_user_host } from "./proxmox_tools.js"
 
 
 
@@ -21,10 +22,12 @@ function main() {
     let configs
     try {
         configs = JSON.parse(fs.readFileSync(CONFIGS_FILE).toString())
+        set_user_host(configs.remote_user, configs.remote_host)
     } catch (e) {
         Logger.fatal('Error: can not read CONFIGS_FILE ' + CONFIGS_FILE + '\n' + e)
         return
     }
+
 
     let token
     try {

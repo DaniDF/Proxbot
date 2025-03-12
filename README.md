@@ -38,7 +38,9 @@ For working properly Proxbot needs a JSON file that describes the paths for all 
     "token_file": "path_to_the_file.json",
     "whitelist_file": "path_to_the_file.json",
     "default_config": "path_to_the_file.json",
-    "default_template": "path_to_the_file.json"
+    "default_template": "path_to_the_file.json",
+    "remote_host": "hostname",
+    "remote_user": "username"
 }
 ```
 
@@ -50,7 +52,7 @@ For working properly Proxbot needs a JSON file that describes the paths for all 
 1234567890:ABCDEFGHIJKLMNOPQRSTU_WZYZ_ABCDEFGH
 ```
 
-[botfather_link]: https://telegram.me/BotFather	"Botfather - Telegram.org"
+[botfather_link]: https://telegram.me/BotFather "Botfather - Telegram.org"
 
 ### whitelist_file
 
@@ -102,10 +104,10 @@ The file <code>default_template</code> contains a list of all the possible templ
 
 ```json
 [
-    "template_0.tmpl",
-    "template_1.tmpl",
-    "template_2.tmpl",
-    "template_3.tmpl"
+    { "name": "template_0.tmpl", "id": 100},
+    { "name": "template_1.tmpl", "id": 100},
+    { "name": "template_2.tmpl", "id": 100},
+    { "name": "template_3.tmpl", "id": 100}
 ]
 ```
 
@@ -118,4 +120,40 @@ To run the bot see (parameters.json):
 ```sh
 nodejs path_to_parameters.json
 ```
+
+
+
+## Container
+
+Proxbot is container ready.
+
+### Command line docker
+
+* Build the Proxbot docker image:
+
+  ```sh
+  docker build -t proxbot:latest .
+  ```
+
+* Run the Proxbot image:
+
+  ```sh
+  docker run \
+  	--name proxbot \
+  	--restart=unless-stopped \
+  	-v ./data:/Proxbot-data \
+  	proxbot
+  ```
+
+  
+
+### Compose
+
+* Build and run Proxbot image:
+
+  ```sh
+  docker compose up -d
+  ```
+
+  
 

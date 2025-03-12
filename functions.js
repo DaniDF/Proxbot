@@ -94,8 +94,8 @@ function create_new(context) {
 function clone_from_template(context) {
     let buttons = { inline_keyboard: [] }
 
-    context.session.templates.forEach(tmpl => {
-        buttons.inline_keyboard.push([ { text: tmpl, callback_data: tmpl } ])
+    context.session.templates.forEach(template => {
+        buttons.inline_keyboard.push([ { text: template.name, callback_data: template.name } ])
     })
 
     send_updateble_message(context, "Which template do you want to clone?", { reply_markup: buttons })
@@ -219,12 +219,17 @@ function machine_tuning_setting_string(context, name) {
 ///////////////////////////////////////////////////////////////////////////////
 
 function confirm_template(context, name) {
-    context.session.config = {
-        type: "template",
-        values: {
-            template: name
+    context.session.templates.forEach((template) => {
+        if(template.name == name) {
+            context.session.config = {
+                type: "template",
+                values: {
+                    template: template.name,
+                    id: template.id
+                }
+            }
         }
-    }
+    })
 
     proceed(context)
 }
@@ -239,22 +244,26 @@ function deploy_machine(context) {
 
     Logger.info(get_sender(context) + ": Deploying new machine --> " + JSON.stringify(context.session.config))
 
-    var result = false
+    let positive_result_handler = (_) => {
+        Logger.info(get_sender(context) + ": machine " + context.session.machine_name + " created successfully")
+        send_message(context, "Your machine \"" + context.session.machine_name + "\" has been created successfully!\nMy job here is done 🎉 See you soon. 👋")
+    }
+    let error_result_handler = (error) => {
+        Logger.error(get_sender(context) + ": an error oppurred while creating new machine --> " + error)
+        send_message(context, "Your machine \"" + context.session.machine_name + "\" can not be created as wanted, an error occurred.\nSorry for the inconvenience 😢")
+    }
+
     if(context.session.config.type == "qemu") {
-        result = deploy_new_qemu(context.session.config.values)
+        deploy_new_qemu(context.session.machine_name, context.session.config.values, positive_result_handler, error_result_handler)
 
     } else if(context.session.config.type == "lxc") {
-        result = deploy_new_lxc(context.session.config.values)
+        deploy_new_lxc(context.session.machine_name, context.session.config.values, positive_result_handler, error_result_handler)
         
     } else if(context.session.config.type == "template") {
-        result = deploy_clone_templete(context.session.config.values)
+        deploy_clone_templete(context.session.machine_name, context.session.config.values, positive_result_handler, error_result_handler)
 
     } else {
         Logger.error(get_sender(context) + ": New machine type not supported --> " + JSON.stringify(context.session.config))
-    }
-
-    if(result) {
-        send_message(context, "Your machine \"" + context.session.machine_name + "\" has been created successfully!\nMy job here is done 🎉 See you soon. 👋")
     }
 }
 
@@ -283,10 +292,10 @@ function generate_action_from_config_obj(config) {
     })
 }
 
-function generate_action_from_template_obj(template) {
-    template.forEach(tmpl => {
+function generate_action_from_template_obj(templates) {
+    templates.forEach(template => {
         actions.push({
-            name: tmpl,
+            name: template.name,
             func: confirm_template
         })
     })

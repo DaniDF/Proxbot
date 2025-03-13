@@ -80,20 +80,23 @@ In the <code>default_config</code> can be described all the possible machines an
     "qemu": {
         "sockets": 1,
         "cores": 4,
-        "iso": "qemu.iso",
+        "memory": 1024,
+        "iso": "debian-12.9.0-amd64-netinst.iso",
         "disk": "qemu_disk",
-        "start_at_boot": true
-
+        "start_at_boot": true,
+        "cluster_node": "pve1"
     },
     "lxc": {
         "cpu_units": 1,
         "cores": 2,
-        "template": "template",
+        "template": "ubuntu-24.04-standard_24.04-2_amd64.tar.zst",
         "memory": 1024,
         "swap": 512,
         "address": "0.0.0.0/0",
+        "bridge": "vmbr0",
         "disk": 32,
-        "start_at_boot": true
+        "start_at_boot": true,
+        "cluster_node": "pve1"
     }
 }
 ```
@@ -104,10 +107,10 @@ The file <code>default_template</code> contains a list of all the possible templ
 
 ```json
 [
-    { "name": "template_0.tmpl", "id": 100},
-    { "name": "template_1.tmpl", "id": 100},
-    { "name": "template_2.tmpl", "id": 100},
-    { "name": "template_3.tmpl", "id": 100}
+    { "name": "machine_template_0", "id": 100},
+    { "name": "machine_template_1", "id": 101},
+    { "name": "machine_template_2", "id": 102},
+    { "name": "machine_template_3", "id": 103}
 ]
 ```
 
@@ -132,28 +135,53 @@ Proxbot is container ready.
 * Build the Proxbot docker image:
 
   ```sh
-  docker build -t proxbot:latest .
+  docker build -t proxbot:latest \
+    --build-arg REMOTE_HOST="remote_host.com" \
+    --build-arg SSH_KEY_NAME="key" \
+    .
   ```
 
 * Run the Proxbot image:
 
   ```sh
   docker run \
-  	--name proxbot \
-  	--restart=unless-stopped \
-  	-v ./data:/Proxbot-data \
-  	proxbot
+    --name proxbot \
+    --restart=unless-stopped \
+    -v ./data:/Proxbot-data \
+    -v ./ssh_keys:/ssh:ro \
+    proxbot
   ```
-
+  
   
 
 ### Compose
+
+* Modify the <code>compose.yaml</code> file:
+
+  Change <code>REMOTE_HOST</code> and <code>SSH_KEY_NAME</code> according to the deployed setup
+
+  ```yaml
+  services:
+    proxbot:
+      build:
+        context: .
+        args:
+          - REMOTE_HOST=remote_host.com
+          - SSH_KEY_NAME=key
+      container_name: "proxbot"
+      volumes:
+        - ./data:/Proxbot-data
+        - ./ssh_keys:/ssh:ro
+      deploy:
+        restart_policy:
+          condition: "unless-stopped"
+  
+  ```
+
+  
 
 * Build and run Proxbot image:
 
   ```sh
   docker compose up -d
   ```
-
-  
-

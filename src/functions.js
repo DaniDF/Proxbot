@@ -249,7 +249,7 @@ function deploy_machine(context) {
         send_message(context, "Your machine \"" + context.session.machine_name + "\" has been created successfully!\nMy job here is done 🎉 See you soon. 👋")
     }
     let error_result_handler = (error) => {
-        Logger.error(get_sender(context) + ": an error oppurred while creating new machine --> " + error)
+        Logger.error(get_sender(context) + ": an error occurred while creating new machine --> " + error)
         send_message(context, "Your machine \"" + context.session.machine_name + "\" can not be created as wanted, an error occurred.\nSorry for the inconvenience 😢")
     }
 

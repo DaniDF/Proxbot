@@ -1,0 +1,11 @@
+#!/bin/bash
+
+echo $(basename $0)
+
+if [ $# == 1 ]
+then
+    node "$(dirname $(readlink -f "$0"))"/src/main.js "$1"
+
+else
+    echo "Usage: $(basename $0) parameter_file.json"
+fi

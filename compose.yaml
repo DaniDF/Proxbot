@@ -1,9 +1,14 @@
 services:
   proxbot:
-    build: .
+    build:
+      context: .
+      args:
+        - REMOTE_HOST=remote_host.com
+        - SSH_KEY_NAME=key
     container_name: "proxbot"
     volumes:
       - ./data:/Proxbot-data
+      - ./ssh_keys:/ssh:ro
     deploy:
       restart_policy:
         condition: "unless-stopped"

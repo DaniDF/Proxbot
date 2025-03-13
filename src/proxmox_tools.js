@@ -36,7 +36,7 @@ function deploy_new_lxc(machine_name, config, positive_handler, error_handler) {
     Logger.debug("Recived lxc config --> " + JSON.stringify(config))
     
     get_next_id(user, host, (next_id) => {
-        let command_create = "pvesh create /nodes/secondcloud/lxc" +
+        let command_create = "pvesh create /nodes/" + config.cluster_node + "/lxc" +
             " -vmid " + next_id + 
             " -ostemplate local:vztmpl/" + config.template +
             " -cores " + config.cores + " -cpuunits " + config.cpu_units +
@@ -47,7 +47,7 @@ function deploy_new_lxc(machine_name, config, positive_handler, error_handler) {
             " -rootfs local:" + config.disk +
             ((config.start_at_boot)? " -onboot 1" : "")
         
-        let command_start = "pvesh create /nodes/secondcloud/lxc/" + next_id + "/status/start"
+        let command_start = "pvesh create /nodes/" + config.cluster_node + "/lxc/" + next_id + "/status/start"
 
         execute_command(user, host, command_create,
             () => { execute_command(user, host, command_start, positive_handler, error_handler) },
@@ -93,7 +93,7 @@ function execute_command(user, host, command, positive_handler, error_handler) {
 
     try {
         var output_data = ""
-        let proc_exec = exec("ssh " + ssh_remote_host + " " + command, (error, stdout, stderr) => {
+        let proc_exec = exec("ssh " + ssh_remote_host + " sudo " + command, (error, stdout, stderr) => {
             if(error) {
                 error_handler(error.message)
             } else if (stderr) {
